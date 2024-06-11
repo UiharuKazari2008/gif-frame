@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GIF Slideshow</title>
+  <style>
+    #overlay {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      z-index: 20;
+      box-shadow: inset black 0px 0px 20px 5px;
+      opacity: 0;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      height: 100vh;
+      margin: 0;
+      background-color: black;
+    }
+    #slideshow {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+    .image-container {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+    }
+    .image-container.active {
+      opacity: 1;
+    }
+    .image-container img {
+      object-fit: contain;
+    }
+    .landscape img {
+      width: 100vw;
+      height: auto;
+    }
+    .portrait img {
+      width: auto;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+<div id="overlay"></div>
+<div id="slideshow"></div>
+
+<script>
+  let currentImage = null;
+
+  function preloadImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = url;
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+    });
+  }
+
+  async function fetchNextImage() {
+    const response = await fetch('/next-image');
+    const data = await response.json();
+    const img = await preloadImage(data.imageUrl);
+    return { img, orientation: data.orientation };
+  }
+
+  async function showNextImage() {
+    const { img, orientation } = await fetchNextImage();
+
+    const newImageContainer = document.createElement('div');
+    newImageContainer.classList.add('image-container', orientation);
+    newImageContainer.appendChild(img);
+
+    const slideshow = document.getElementById('slideshow');
+    slideshow.appendChild(newImageContainer);
+
+    setTimeout(() => {
+      if (currentImage) {
+        currentImage.classList.remove('active');
+        setTimeout(() => {
+          currentImage.remove();
+          newImageContainer.classList.add('active');
+          currentImage = newImageContainer;
+        }, 1000); // Ensure this matches the CSS transition duration
+      } else {
+        newImageContainer.classList.add('active');
+        currentImage = newImageContainer;
+      }
+    }, 100);
+
+    setTimeout(showNextImage, 60000);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    showNextImage();
+  });
+</script>
+</body>
+</html>

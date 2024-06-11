@@ -1,0 +1,8 @@
+{
+  "name": "gif-frame",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.19.2",
+    "image-size": "^1.1.1"
+  }
+}
