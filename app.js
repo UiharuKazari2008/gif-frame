@@ -4,7 +4,7 @@ const path = require('path');
 const sizeOf = require('image-size');
 
 const app = express();
-const port = 3000;
+const port = 5770;
 
 let images = [];
 
