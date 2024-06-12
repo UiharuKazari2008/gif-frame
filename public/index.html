@@ -5,14 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GIF Slideshow</title>
   <style>
-    #overlay {
-      position: absolute;
-      width: 100vw;
-      height: 100vh;
-      display: block;
-      z-index: 11;
-      box-shadow: inset black 0px 0px 20px 5px;
-    }
     body {
       display: flex;
       justify-content: center;
@@ -50,6 +42,7 @@
       align-items: flex-end;
       overflow: hidden;
       z-index: 10;
+      margin-bottom: 5em;
     }
     .image-container {
       position: absolute;
@@ -81,7 +74,6 @@
 <div id="backbaord-fg">
   <img src="/foreground.png"/>
 </div>
-<div id="overlay"></div>
 <div id="slideshow"></div>
 <div id="backbaord-bg">
   <img src="/background.png"/>
