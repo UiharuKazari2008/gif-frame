@@ -6,8 +6,6 @@ const sizeOf = require('image-size');
 const app = express();
 const port = 5770;
 
-let images = [];
-
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
 
@@ -16,12 +14,8 @@ app.get('/', (req, res) => {
 });
 
 app.get('/next-image', (req, res) => {
-    if (images.length === 0) {
-        images = fs.readdirSync(path.join(__dirname, 'public', 'images')).filter(file => file.endsWith('.gif'));
-    }
-    const nextImage = images.shift();
-    images.push(nextImage);
-
+    const images = fs.readdirSync(path.join(__dirname, 'public', 'images')).filter(file => file.endsWith('.gif'));
+    const nextImage = images[Math.floor(Math.random()*images.length)];
     const imagePath = path.join(__dirname, 'public', 'images', nextImage);
     const dimensions = sizeOf(imagePath);
     const orientation = dimensions.width >= dimensions.height ? 'landscape' : 'portrait';

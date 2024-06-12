@@ -10,8 +10,9 @@
       width: 100vw;
       height: 100vh;
       display: block;
-      z-index: 20;
+      z-index: 11;
       box-shadow: inset black 0px 0px 20px 5px;
+      margin-bottom: 3em;
     }
     body {
       display: flex;
@@ -20,6 +21,28 @@
       height: 100vh;
       margin: 0;
       background-color: black;
+    }
+    #backbaord-bg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: block;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      margin-bottom: 3em;
+      z-index: 0;
+    }
+    #backbaord-fg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: block;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      margin-bottom: 3em;
+      z-index: 20;
     }
     #slideshow {
       position: relative;
@@ -30,6 +53,7 @@
       align-items: flex-end;
       overflow: hidden;
       margin-bottom: 3em;
+      z-index: 10;
     }
     .image-container {
       position: absolute;
@@ -38,6 +62,8 @@
       align-items: flex-end;
       opacity: 0;
       transition: opacity 1s ease-in-out;
+      filter: drop-shadow(0px 0px 30px black);
+      background: black;
     }
     .image-container.active {
       opacity: 1;
@@ -56,8 +82,14 @@
   </style>
 </head>
 <body>
+<div id="backbaord-fg">
+  <img src="/foreground.png"/>
+</div>
 <div id="overlay"></div>
 <div id="slideshow"></div>
+<div id="backbaord-bg">
+  <img src="/background.png"/>
+</div>
 
 <script>
   let currentImage = null;
