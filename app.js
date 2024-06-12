@@ -13,15 +13,22 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+let sentImages = [];
+
 app.get('/next-image', (req, res) => {
     const images = fs.readdirSync(path.join(__dirname, 'public', 'images')).filter(file => file.endsWith('.gif'));
-    const nextImage = images[Math.floor(Math.random()*images.length)];
+    const availableImages = images.filter(image => !sentImages.includes(image));
+    if (availableImages.length === 0)
+        sentImages = [];
+    const nextImage = availableImages[Math.floor(Math.random() * availableImages.length)];
     const imagePath = path.join(__dirname, 'public', 'images', nextImage);
     const dimensions = sizeOf(imagePath);
     const orientation = dimensions.width >= dimensions.height ? 'landscape' : 'portrait';
+    sentImages.push(nextImage);
 
     res.json({ imageUrl: `/images/${nextImage}`, orientation });
 });
+
 
 app.listen(port, () => {
     console.log(`App listening at http://localhost:${port}`);

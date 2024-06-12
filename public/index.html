@@ -12,7 +12,6 @@
       display: block;
       z-index: 11;
       box-shadow: inset black 0px 0px 20px 5px;
-      margin-bottom: 3em;
     }
     body {
       display: flex;
@@ -30,7 +29,6 @@
       justify-content: center;
       align-items: center;
       overflow: hidden;
-      margin-bottom: 3em;
       z-index: 0;
     }
     #backbaord-fg {
@@ -41,7 +39,6 @@
       justify-content: center;
       align-items: center;
       overflow: hidden;
-      margin-bottom: 3em;
       z-index: 20;
     }
     #slideshow {
@@ -52,7 +49,6 @@
       justify-content: center;
       align-items: flex-end;
       overflow: hidden;
-      margin-bottom: 3em;
       z-index: 10;
     }
     .image-container {
@@ -62,8 +58,7 @@
       align-items: flex-end;
       opacity: 0;
       transition: opacity 1s ease-in-out;
-      filter: drop-shadow(0px 0px 30px black);
-      background: black;
+      filter: drop-shadow(0px 0px 8px black);
     }
     .image-container.active {
       opacity: 1;
@@ -71,14 +66,15 @@
     .image-container img {
       object-fit: contain;
     }
+    .portrait img,
     .landscape img {
       width: 100vw;
       height: auto;
-    }
+    }/*
     .portrait img {
       width: auto;
       height: 100vh;
-    }
+    }*/
   </style>
 </head>
 <body>
