@@ -77,6 +77,22 @@
 </div>
 
 <script>
+  window.onload = function() {
+    setInterval(function() {
+      // Get the foreground and background divs
+      const fgDiv = document.getElementById('backbaord-fg');
+      const bgDiv = document.getElementById('backbaord-bg');
+
+      // Get the image elements inside the divs
+      const fgImg = fgDiv.getElementsByTagName('img')[0];
+      const bgImg = bgDiv.getElementsByTagName('img')[0];
+
+      // Reload the image sources
+      fgImg.src = "/foreground.png?" + new Date().getTime(); // Add timestamp to avoid caching
+      bgImg.src = "/background.png?" + new Date().getTime(); // Add timestamp to avoid caching
+    }, 300000); // 5 minutes in milliseconds
+  }
+
   let currentImage = null;
 
   function preloadImage(url) {
