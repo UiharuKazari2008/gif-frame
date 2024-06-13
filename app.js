@@ -17,9 +17,11 @@ let sentImages = [];
 
 app.get('/next-image', (req, res) => {
     const images = fs.readdirSync(path.join(__dirname, 'public', 'images')).filter(file => file.endsWith('.gif'));
-    const availableImages = images.filter(image => !sentImages.includes(image));
-    if (availableImages.length === 0)
+    let availableImages = images.filter(image => !sentImages.includes(image));
+    if (availableImages.length === 0) {
         sentImages = [];
+        availableImages = images;
+    }
     const nextImage = availableImages[Math.floor(Math.random() * availableImages.length)];
     const imagePath = path.join(__dirname, 'public', 'images', nextImage);
     const dimensions = sizeOf(imagePath);
