@@ -1,0 +1,27 @@
+doctype html
+html
+    body
+        if (enable && live)
+            div.chat-messages
+                div.header-holder
+                    div.header
+                        i.fas.fa-messages
+                        span Live Chat
+                if (chat.length > 0)
+                    div.messages
+                        each msg, index in chat
+                            div.chat-message
+                                div.chater-name
+                                    span !{msg.name}
+                                div.chater-text
+                                    span !{msg.text}
+                else
+                    div.chat-message.holder.no-messages
+                        i.fas.fa-messages
+                        span No Live Chat Messages
+        else if (!login && enable)
+            div.chat-messages.error
+                div.error-message
+                    span Login Required
+        else
+            div.no-chat-messages

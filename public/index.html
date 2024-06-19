@@ -1,146 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GIF Slideshow</title>
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      height: 100vh;
-      margin: 0;
-      background-color: black;
-    }
-    #backbaord-bg {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      display: block;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      z-index: 0;
-    }
-    #backbaord-fg {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      display: block;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      z-index: 20;
-    }
-    #slideshow {
-      position: relative;
-      width: 100%;
-      height: calc(100% - calc(2em + 6em));
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      overflow: hidden;
-      z-index: 10;
-      margin: 2em 2em 6em 2em;
-      filter: drop-shadow(0px 0px 15px black);
-    }
-    .image-container {
-      width: inherit;
-      height: inherit;
-      position: absolute;
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      opacity: 0;
-      transition: opacity 1s ease-in-out;
-    }
-    .image-container.active {
-      opacity: 1;
-    }
-    .image-container img {
-      object-fit: contain;
-    }
-    .portrait img, .landscape img {
-      width: 100vw;
-      max-height: calc(100vh - calc(2em + 6em));
-    }
-  </style>
-</head>
-<body>
-<div id="backbaord-fg">
-  <img src="/foreground.png"/>
-</div>
-<div id="slideshow"></div>
-<div id="backbaord-bg">
-  <img src="/background.png"/>
-</div>
-
-<script>
-  window.onload = function() {
-    setInterval(function() {
-      // Get the foreground and background divs
-      const fgDiv = document.getElementById('backbaord-fg');
-      const bgDiv = document.getElementById('backbaord-bg');
-
-      // Get the image elements inside the divs
-      const fgImg = fgDiv.getElementsByTagName('img')[0];
-      const bgImg = bgDiv.getElementsByTagName('img')[0];
-
-      // Reload the image sources
-      fgImg.src = "/foreground.png?" + new Date().getTime(); // Add timestamp to avoid caching
-      bgImg.src = "/background.png?" + new Date().getTime(); // Add timestamp to avoid caching
-    }, 300000); // 5 minutes in milliseconds
-  }
-
-  let currentImage = null;
-
-  function preloadImage(url) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = url;
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-    });
-  }
-
-  async function fetchNextImage() {
-    const response = await fetch('/next-image');
-    const data = await response.json();
-    const img = await preloadImage(data.imageUrl);
-    return { img, orientation: data.orientation };
-  }
-
-  async function showNextImage() {
-    const { img, orientation } = await fetchNextImage();
-
-    const newImageContainer = document.createElement('div');
-    newImageContainer.classList.add('image-container', orientation);
-    newImageContainer.appendChild(img);
-
-    const slideshow = document.getElementById('slideshow');
-    slideshow.appendChild(newImageContainer);
-
-    setTimeout(() => {
-      if (currentImage) {
-        currentImage.classList.remove('active');
-        setTimeout(() => {
-          currentImage.remove();
-          newImageContainer.classList.add('active');
-          currentImage = newImageContainer;
-        }, 1000); // Ensure this matches the CSS transition duration
-      } else {
-        newImageContainer.classList.add('active');
-        currentImage = newImageContainer;
-      }
-    }, 100);
-
-    setTimeout(showNextImage, 60000);
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    showNextImage();
-  });
-</script>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIF Slideshow</title>
+    <link rel='stylesheet'  href='/main.css'>
+    <link rel='stylesheet'  href='/fontawesome/css/all.css'>
+    <script type="text/javascript" src="/fontawesome/js/all.js"></script>
+  </head>
+    <body>
+    <div id="chat-fg" style="opacity: 0"></div>
+    <div id="backbaord-fg">
+      <img src="/foreground.png"/>
+    </div>
+    <div id="slideshow"></div>
+    <div id="backbaord-bg">
+      <img src="/background.png"/>
+    </div>
+    <script type="text/javascript" src="/main.js"></script>
+  </body>
 </html>

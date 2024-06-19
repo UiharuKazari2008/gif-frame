@@ -9,3 +9,5 @@ The panel is displayed in 3 layers
 * public/background.jpg - Layer of stickers or image
 
 Run the app.js in the background and launch the display as a kiosk edge/chrome window
+
+Supports displaying YouTube chat for your current live broadcast

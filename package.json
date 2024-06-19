@@ -2,7 +2,10 @@
   "name": "gif-frame",
   "version": "1.0.0",
   "dependencies": {
+    "body-parser": "^1.20.2",
     "express": "^4.19.2",
-    "image-size": "^1.1.1"
+    "googleapis": "^140.0.0",
+    "image-size": "^1.1.1",
+    "pug": "^3.0.3"
   }
 }
