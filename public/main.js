@@ -1,17 +1,5 @@
 window.onload = function() {
-    setInterval(function() {
-        // Get the foreground and background divs
-        const fgDiv = document.getElementById('backbaord-fg');
-        const bgDiv = document.getElementById('backbaord-bg');
-
-        // Get the image elements inside the divs
-        const fgImg = fgDiv.getElementsByTagName('img')[0];
-        const bgImg = bgDiv.getElementsByTagName('img')[0];
-
-        // Reload the image sources
-        fgImg.src = "/foreground.png?" + new Date().getTime(); // Add timestamp to avoid caching
-        bgImg.src = "/background.png?" + new Date().getTime(); // Add timestamp to avoid caching
-    }, 300000); // 5 minutes in milliseconds
+    setInterval(refreshStickers, 300000); // 5 minutes in milliseconds
     setInterval(function () {
         getGlobalState();
         getChatMessages();
@@ -21,7 +9,16 @@ window.onload = function() {
 let currentImage = null;
 let enableSlideshow = true;
 let activeSlideshow = true;
+let currentSet = 'true';
 
+function refreshStickers() {
+    const fgDiv = document.getElementById('backbaord-fg');
+    const bgDiv = document.getElementById('backbaord-bg');
+    const fgImg = fgDiv.getElementsByTagName('img')[0];
+    const bgImg = bgDiv.getElementsByTagName('img')[0];
+    fgImg.src = `/foreground${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
+    bgImg.src = `/background${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
+}
 function preloadImage(url) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -92,9 +89,13 @@ async function getChatMessages() {
     }
 }
 async function getGlobalState() {
-    const response = await fetch('/active');
+    const response = await fetch('/active/setting');
     const data = await response.text();
-    if (data === 'true') {
+    if (data !== 'false') {
+        if (currentSet !== data) {
+            currentSet = data;
+            refreshStickers();
+        }
         enableSlideshow = true;
     } else {
         enableSlideshow = false;

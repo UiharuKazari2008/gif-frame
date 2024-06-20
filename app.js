@@ -5,6 +5,7 @@ const sizeOf = require('image-size');
 const { google } = require('googleapis');
 const OAuth2 = google.auth.OAuth2;
 const bodyParser = require('body-parser');
+const config = require('./config.json');
 let tokens = undefined;
 let oAuth2Client = undefined;
 
@@ -52,6 +53,21 @@ app.get('/next-image', (req, res) => {
 
 app.get('/active', (req, res) => {
     res.send(globalActive.toString())
+})
+app.get('/active/setting', (req, res) => {
+    const getCurrentStatus = () => {
+        if (config.nightMode) {
+            const now = new Date();
+            const currentHour = now.getHours();
+
+            if (currentHour >= config.nightStart || currentHour < config.nightEnd) {
+                return "night";
+            }
+        }
+        return true;
+    };
+
+    res.send(globalActive ? getCurrentStatus().toString() : globalActive.toString());
 })
 app.get('/active/on', (req, res) => {
     globalActive = true;
