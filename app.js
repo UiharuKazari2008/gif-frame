@@ -102,11 +102,11 @@ app.get('/oauth2callback', (req, res) => {
 app.get('/url', async (req, res) => {
     await refreshLiveBroadcasts();
     if (!loginOk) {
-        res.redirect("/authorize");
+        res.send("<b>Please Contact PlayLand Gau Staff to Authorise the Youtube account</b>");
     } else if (liveState) {
         res.redirect(`https://www.youtube.com/watch?v=${activeLive.id}`)
     } else {
-        res.send("No Active Broadcasts")
+        res.redirect("https://www.youtube.com/@RhythmGamer")
     }
 })
 app.get('/live', async (req, res) => {
