@@ -120,7 +120,7 @@ app.get('/live', async (req, res) => {
     }
 })
 app.get('/chat/html', async (req, res) => {
-    res.render('chat', {enable: !!oAuth2Client, login: loginOk, live: (liveState ? activeLive : false), chat: liveMessages.slice(-4)});
+    res.render('chat', {enable: !!oAuth2Client, login: loginOk, live: (liveState ? activeLive : false), chat: liveMessages.filter(e => (new Date()) - (new Date(e.time)) <= 5 * 60 * 1000).slice(-4)});
 })
 app.get('/chat/json', async (req, res) => {
     res.json({live: activeLive, chat: liveMessages});
