@@ -201,7 +201,8 @@ function getLiveChatMessages() {
                 return {
                     name: msg.authorDetails.displayName,
                     icon: msg.authorDetails.profileImageUrl,
-                    text: msg.snippet.displayMessage
+                    text: msg.snippet.displayMessage,
+                    time: msg.snippet.publishedAt
                 }
             });
         });
