@@ -23,7 +23,7 @@ let liveMessages = [];
 let streamRefresh
 let streamChat
 
-let sentImages = [];
+const sentImages = new Set();
 let globalActive = true;
 let setSelect = 0;
 
@@ -37,17 +37,28 @@ app.get('/', (req, res) => {
 });
 
 app.get('/next-image', (req, res) => {
-    const images = fs.readdirSync(path.join(__dirname, 'public', 'images')).filter(file => file.endsWith('.gif') || file.endsWith('.webp'));
-    let availableImages = images.filter(image => !sentImages.includes(image));
-    if (availableImages.length === 0) {
-        sentImages = [];
-        availableImages = images;
+    const imagesDir = path.join(__dirname, 'public', 'images');
+    const images = fs.readdirSync(imagesDir).filter(file => file.endsWith('.gif') || file.endsWith('.webp'));
+
+    for (const img of Array.from(sentImages)) {
+        if (!images.includes(img)) {
+            sentImages.delete(img);
+        }
     }
-    const nextImage = availableImages[Math.floor(Math.random() * availableImages.length)];
-    const imagePath = path.join(__dirname, 'public', 'images', nextImage);
+
+    const availableImages = images.filter(image => !sentImages.has(image));
+    if (availableImages.length === 0) {
+        sentImages.clear();
+    }
+
+    const finalAvailableImages = availableImages.length > 0 ? availableImages : images;
+    const nextImage = finalAvailableImages[Math.floor(Math.random() * finalAvailableImages.length)];
+
+    sentImages.add(nextImage);
+
+    const imagePath = path.join(imagesDir, nextImage);
     const dimensions = sizeOf(imagePath);
     const orientation = dimensions.width >= dimensions.height ? 'landscape' : 'portrait';
-    sentImages.push(nextImage);
 
     res.json({ imageUrl: `/images/${nextImage}`, orientation });
 });
