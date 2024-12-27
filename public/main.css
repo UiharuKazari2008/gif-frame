@@ -79,12 +79,12 @@ body {
     opacity: 0;
     transition: opacity 1s ease-in-out;
     width: unset;
-    max-width: 90vw;
-    min-width: 256px;
-    min-height: 256px;
+    max-width: 256px;
+    min-width: 128px;
+    min-height: 128px;
     position: absolute;
     border: 0.5em solid white;
-    border-bottom-width: 4.75em;
+    border-bottom-width: 4em;
     border-radius: 7px;
     background: #2b2b2b;
     filter: drop-shadow(0px 0px 8px black);
