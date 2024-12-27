@@ -80,8 +80,8 @@ body {
     transition: opacity 1s ease-in-out;
     width: unset;
     max-width: 512px;
-    min-width: 128px;
-    min-height: 128px;
+    min-width: 256px;
+    min-height: 256px;
     position: absolute;
     border: 0.5em solid white;
     border-bottom-width: 4em;
