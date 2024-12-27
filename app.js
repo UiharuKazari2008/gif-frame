@@ -294,7 +294,7 @@ app.listen(port, () => {
             tokens.web.client_secret, // Replace with your client secret
             'http://localhost:5770/oauth2callback'
         );
-        if (fs.existsSync('./youtube-token.json')) {
+        if (fs.existsSync(TOKEN_PATH)) {
             fs.readFile(TOKEN_PATH, async (err, token) => {
                 if (err) {
                     console.log('Visit http://localhost:5770/authorize to start the authentication process.');
@@ -311,6 +311,9 @@ app.listen(port, () => {
                     }
                 }
             })
+        } else {
+            console.log('Visit http://localhost:5770/authorize to start the authentication process.');
+            loginOk = false;
         }
         streamRefresh = setInterval(refreshLiveBroadcasts, 60000);
     }
