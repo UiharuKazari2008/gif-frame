@@ -138,6 +138,89 @@ app.get('/active/night', (req, res) => {
     res.send(setSelect.toString())
 })
 
+async function checkTokenValidity() {
+    return new Promise(ok => {
+        oAuth2Client.getAccessToken((err, token) => {
+            if (err || !token) {
+                if (err)
+                    console.error(err)
+                ok(false);
+            } else {
+                ok(true);
+            }
+        });
+    })
+}
+async function refreshLiveBroadcasts() {
+    if (!loginOk)
+        return false;
+    const service = google.youtube('v3');
+    return new Promise((ok) => {
+        service.liveBroadcasts.list({
+            auth: oAuth2Client,
+            part: ['snippet','contentDetails','status'],
+            broadcastStatus: 'active',
+            broadcastType: 'all',
+            maxResults: 2
+        }, (err, response) => {
+            if (err) {
+                if (err.message.includes("Login Required")) {
+                    loginOk = false;
+                }
+                return console.error('The API returned an error: ' + err);
+            }
+            const broadcasts = response.data.items;
+            if (broadcasts.length === 0) {
+                ok(false);
+                if (liveState) {
+                    liveState = false;
+                    liveMessages = [];
+                    clearInterval(streamChat);
+                    streamChat = null;
+                    console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has ended`);
+                }
+                activeLive = null;
+            } else {
+                broadcasts.sort((a, b) => new Date(b.snippet.scheduledStartTime) - new Date(a.snippet.scheduledStartTime));
+                //`Title: ${broadcast.snippet.title}, URL: https://www.youtube.com/watch?v=${broadcast.id}`
+                if (!liveState) {
+                    activeLive = broadcasts[0];
+                    liveMessages = [];
+                    liveState = true;
+                    clearInterval(streamChat);
+                    streamChat = setInterval(getLiveChatMessages, 10000);
+                    console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has started`);
+                } else if (activeLive.id !== broadcasts[0].id) {
+                    activeLive = broadcasts[0];
+                    console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has started (Replacement)`);
+                }
+                ok(true);
+            }
+        });
+    })
+}
+function getLiveChatMessages() {
+    if (loginOk && liveState && activeLive && activeLive.snippet) {
+        const service = google.youtube('v3');
+        service.liveChatMessages.list({
+            auth: oAuth2Client,
+            liveChatId: activeLive.snippet.liveChatId,
+            part: 'snippet,authorDetails',
+        }, (err, response) => {
+            if (err) return console.error('The API returned an error: ' + err);
+            const messages = response.data.items;
+            liveMessages = messages.filter(m => m.snippet.hasDisplayContent && m.snippet.displayMessage.length > 0).map(msg => {
+                return {
+                    name: msg.authorDetails.displayName,
+                    icon: msg.authorDetails.profileImageUrl,
+                    text: msg.snippet.displayMessage,
+                    time: msg.snippet.publishedAt
+                }
+            });
+        });
+    }
+}
+
 if (config.enable_youtube) {
     app.get('/authorize', (req, res) => {
         const authUrl = oAuth2Client.generateAuthUrl({
@@ -190,88 +273,6 @@ if (config.enable_youtube) {
         res.json({live: activeLive, chat: liveMessages});
     })
 
-    async function checkTokenValidity() {
-        return new Promise(ok => {
-            oAuth2Client.getAccessToken((err, token) => {
-                if (err || !token) {
-                    if (err)
-                        console.error(err)
-                    ok(false);
-                } else {
-                    ok(true);
-                }
-            });
-        })
-    }
-    async function refreshLiveBroadcasts() {
-        if (!loginOk)
-            return false;
-        const service = google.youtube('v3');
-        return new Promise((ok) => {
-            service.liveBroadcasts.list({
-                auth: oAuth2Client,
-                part: ['snippet','contentDetails','status'],
-                broadcastStatus: 'active',
-                broadcastType: 'all',
-                maxResults: 2
-            }, (err, response) => {
-                if (err) {
-                    if (err.message.includes("Login Required")) {
-                        loginOk = false;
-                    }
-                    return console.error('The API returned an error: ' + err);
-                }
-                const broadcasts = response.data.items;
-                if (broadcasts.length === 0) {
-                    ok(false);
-                    if (liveState) {
-                        liveState = false;
-                        liveMessages = [];
-                        clearInterval(streamChat);
-                        streamChat = null;
-                        console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has ended`);
-                    }
-                    activeLive = null;
-                } else {
-                    broadcasts.sort((a, b) => new Date(b.snippet.scheduledStartTime) - new Date(a.snippet.scheduledStartTime));
-                    //`Title: ${broadcast.snippet.title}, URL: https://www.youtube.com/watch?v=${broadcast.id}`
-                    if (!liveState) {
-                        activeLive = broadcasts[0];
-                        liveMessages = [];
-                        liveState = true;
-                        clearInterval(streamChat);
-                        streamChat = setInterval(getLiveChatMessages, 10000);
-                        console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has started`);
-                    } else if (activeLive.id !== broadcasts[0].id) {
-                        activeLive = broadcasts[0];
-                        console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has started (Replacement)`);
-                    }
-                    ok(true);
-                }
-            });
-        })
-    }
-    function getLiveChatMessages() {
-        if (loginOk && liveState && activeLive && activeLive.snippet) {
-            const service = google.youtube('v3');
-            service.liveChatMessages.list({
-                auth: oAuth2Client,
-                liveChatId: activeLive.snippet.liveChatId,
-                part: 'snippet,authorDetails',
-            }, (err, response) => {
-                if (err) return console.error('The API returned an error: ' + err);
-                const messages = response.data.items;
-                liveMessages = messages.filter(m => m.snippet.hasDisplayContent && m.snippet.displayMessage.length > 0).map(msg => {
-                    return {
-                        name: msg.authorDetails.displayName,
-                        icon: msg.authorDetails.profileImageUrl,
-                        text: msg.snippet.displayMessage,
-                        time: msg.snippet.publishedAt
-                    }
-                });
-            });
-        }
-    }
 } else {
     app.get('/chat/html', async (req, res) => {
         res.render('chat', {
@@ -293,22 +294,24 @@ app.listen(port, () => {
             tokens.web.client_secret, // Replace with your client secret
             'http://localhost:5770/oauth2callback'
         );
-        fs.readFile(TOKEN_PATH, async (err, token) => {
-            if (err) {
-                console.log('Visit http://localhost:5770/authorize to start the authentication process.');
-                loginOk = false;
-            } else {
-                oAuth2Client.setCredentials(JSON.parse(token.toString()));
-                if (await checkTokenValidity()) {
-                    loginOk = true;
-                    console.log('Using existing authentication tokens.');
-                    refreshLiveBroadcasts();
-                } else {
+        if (fs.existsSync('./youtube-token.json')) {
+            fs.readFile(TOKEN_PATH, async (err, token) => {
+                if (err) {
                     console.log('Visit http://localhost:5770/authorize to start the authentication process.');
                     loginOk = false;
+                } else {
+                    oAuth2Client.setCredentials(JSON.parse(token.toString()));
+                    if (await checkTokenValidity()) {
+                        loginOk = true;
+                        console.log('Using existing authentication tokens.');
+                        refreshLiveBroadcasts();
+                    } else {
+                        console.log('Visit http://localhost:5770/authorize to start the authentication process.');
+                        loginOk = false;
+                    }
                 }
-            }
-        })
+            })
+        }
         streamRefresh = setInterval(refreshLiveBroadcasts, 60000);
     }
 });
