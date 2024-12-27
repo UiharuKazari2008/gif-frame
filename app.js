@@ -138,28 +138,26 @@ app.get('/active/night', (req, res) => {
     res.send(setSelect.toString())
 })
 
-// Generate a URL for authorization
-app.get('/authorize', (req, res) => {
-    const authUrl = oAuth2Client.generateAuthUrl({
-        access_type: 'offline',
-        scope: SCOPES,
+if (config.enable_youtube) {
+    app.get('/authorize', (req, res) => {
+        const authUrl = oAuth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: SCOPES,
+        });
+        res.redirect(authUrl);
     });
-    res.redirect(authUrl);
-});
-app.get('/oauth2callback', (req, res) => {
-    const code = req.query.code;
-    oAuth2Client.getToken(code, (err, token) => {
-        if (err) return res.send('Error retrieving access token');
-        oAuth2Client.setCredentials(token);
-        loginOk = true;
-        fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
-            if (err) console.error(err);
-            res.send('Authorization successful! You can close this tab.');
+    app.get('/oauth2callback', (req, res) => {
+        const code = req.query.code;
+        oAuth2Client.getToken(code, (err, token) => {
+            if (err) return res.send('Error retrieving access token');
+            oAuth2Client.setCredentials(token);
+            loginOk = true;
+            fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
+                if (err) console.error(err);
+                res.send('Authorization successful! You can close this tab.');
+            });
         });
     });
-});
-
-if (config.enable_youtube) {
     app.get('/url', async (req, res) => {
         await refreshLiveBroadcasts();
         if (!loginOk) {
