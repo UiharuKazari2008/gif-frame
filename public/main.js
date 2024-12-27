@@ -20,7 +20,7 @@ function refreshStickers() {
     fgImg.src = `/foreground${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
     bgImg.src = `/background${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
 }
-function preloadImage(url, minPadding = 20, imgWidth = 320, imgHeight = 320) {
+function preloadImage(url, transparent = false, minPadding = 20, imgWidth = 320, imgHeight = 320) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.src = url;
