@@ -25,7 +25,7 @@ let streamRefresh
 let streamChat
 
 const sentImages = new Set();
-let globalActive = true;
+let globalActive = '00';
 let setSelect = 0;
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -137,6 +137,8 @@ app.get('/active/setting', (req, res) => {
 
             if (setSelect !== 0) {
                 switch (setSelect) {
+                    case 3:
+                        return "02";
                     case 2:
                         return "01";
                     case 1:
