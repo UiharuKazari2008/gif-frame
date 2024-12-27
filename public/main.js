@@ -20,59 +20,18 @@ function refreshStickers() {
     fgImg.src = `/foreground${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
     bgImg.src = `/background${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
 }
-function preloadImage(url, transparent = false, minPadding = 20, imgWidth = 320, imgHeight = 320) {
+function preloadImage(data) {
     return new Promise((resolve, reject) => {
         const img = new Image();
-        img.src = url;
+        img.src = data.imageUrl;
 
         img.onload = () => {
-            if (!transparent) {
-                // Get the dimensions and styles of the slideshow element
-                const slideshow = document.getElementById('slideshow');
-                const computedStyle = window.getComputedStyle(slideshow);
-
-                const paddingLeft = parseFloat(computedStyle.paddingLeft);
-                const paddingRight = parseFloat(computedStyle.paddingRight);
-                const paddingTop = parseFloat(computedStyle.paddingTop);
-                const paddingBottom = parseFloat(computedStyle.paddingBottom);
-
-                const availableWidth = slideshow.offsetWidth - paddingLeft - paddingRight;
-                const availableHeight = slideshow.offsetHeight - paddingTop - paddingBottom;
-
-                // Ensure minimum size for the image
-                const imgActualWidth = Math.max(imgWidth, 320);
-                const imgActualHeight = Math.max(imgHeight, 320);
-
-                const rotation = Math.random() * 40 - 20; // Random rotation between -20 and 20 degrees
-                const radRotation = (Math.PI / 180) * Math.abs(rotation);
-
-                // Calculate the rotated bounding box dimensions
-                const rotatedWidth = Math.abs(Math.cos(radRotation) * imgActualWidth + Math.sin(radRotation) * imgActualHeight);
-                const rotatedHeight = Math.abs(Math.sin(radRotation) * imgActualWidth + Math.cos(radRotation) * imgActualHeight);
-
-                // Generate random position ensuring rotated image stays within bounds
-                const horizontalPos = Math.random() * (availableWidth - rotatedWidth - 2 * minPadding);
-                const verticalPos = Math.random() * (availableHeight - rotatedHeight - 2 * minPadding);
-
-                // Ensure position does not go outside the visible area
-                const isLeft = horizontalPos + rotatedWidth / 2 < availableWidth / 2;
-                const isTop = verticalPos + rotatedHeight / 2 < availableHeight / 2;
-
-                // Adjust positions to remain within bounds
-                const adjustedHorizontalPos = isLeft
-                    ? horizontalPos + paddingLeft + minPadding
-                    : availableWidth - horizontalPos - rotatedWidth - paddingRight - minPadding;
-                const adjustedVerticalPos = isTop
-                    ? verticalPos + paddingTop + minPadding
-                    : availableHeight - verticalPos - rotatedHeight - paddingBottom - minPadding;
-
-                // Apply position and rotation styles
+            if (data.position) {
                 img.style.position = "absolute";
-                img.style[isLeft ? "left" : "right"] = `${adjustedHorizontalPos}px`;
-                img.style[isTop ? "top" : "bottom"] = `${adjustedVerticalPos}px`;
-                img.style.transform = `rotate(${rotation}deg)`;
-                /*img.width = imgActualWidth;
-                img.height = imgActualHeight;*/
+                img.style[data.position.isLeft ? "left" : "right"] = `${data.position.horizontal}px`;
+                img.style[data.position.isTop ? "top" : "bottom"] = `${data.position.vertical}px`;
+                if (data.rotation)
+                    img.style.transform = `rotate(${data.rotation}deg)`;
             }
             resolve(img);
         };
@@ -80,61 +39,84 @@ function preloadImage(url, transparent = false, minPadding = 20, imgWidth = 320,
         img.onerror = reject;
     });
 }
+let frameWidth;
+let frameHeight;
 async function fetchNextImage() {
-    const response = await fetch('/next-image');
+    const response = await fetch(`/next-image?width=${frameWidth}&height=${frameHeight}`);
     const data = await response.json();
-    const img = await preloadImage(data.imageUrl, data.hasTransparency, undefined, data.width, data.height);
+    const img = await preloadImage(data);
     return { img, orientation: data.orientation, trans: data.hasTransparency };
 }
 let imageTimer;
+
+const slideshow = document.getElementById('slideshow');
+const imageContainer = slideshow.querySelector('.image-container');
+const slideshowFull = document.getElementById('slideshow-full');
 async function showNextImage() {
-    if (activeSlideshow && enableSlideshow && !pauseSlideshow) {
+    if (!activeSlideshow || !enableSlideshow || pauseSlideshow) {
+        return;
+    }
+
+    try {
         const { img, orientation, trans } = await fetchNextImage();
 
-        if (trans) {
-            const slideshow = document.getElementById('slideshow');
-            const imageContainer = slideshow.querySelector('.image-container');
-            imageContainer.classList.remove('active');
-
-            setTimeout(() => {
-                imageContainer.innerHTML = '';
-                const slideshowFull = document.getElementById('slideshow-full');
-                slideshowFull.innerHTML = ''; // Clear existing content
-                const transparentContainer = document.createElement('div');
-                transparentContainer.classList.add('image-container', orientation);
-                transparentContainer.style.opacity = 1;
-                transparentContainer.appendChild(img);
-                slideshowFull.appendChild(transparentContainer);
-            }, 250);
-        } else {
-            const slideshow = document.getElementById('slideshow');
-            const imageContainer = slideshow.querySelector('.image-container');
-
-            if (!imageContainer) {
-                console.error('No image-container found. Ensure the DOM has an element with the class image-container.');
-                return;
-            }
-
-            const images = imageContainer.querySelectorAll('img');
-            if (images.length >= 3) {
-                const oldestImage = images[0];
-                oldestImage.style.opacity = 0;
-                setTimeout(() => {
-                    oldestImage.remove();
-                }, 1000);
-            }
-
-            img.className = orientation;
-            img.style.opacity = 1;
-            imageContainer.appendChild(img);
-            imageContainer.classList.add('active');
-            const slideshowFull = document.getElementById('slideshow-full').querySelector('.image-container');
-            if (slideshowFull)
-                slideshowFull.style.opacity = 0;
+        if (!imageContainer) {
+            console.error('No image-container found. Ensure the DOM has the required structure.');
+            return;
         }
 
+        if (trans) {
+            handleTransparentImage(img, orientation);
+        } else {
+            handleStandardImage(img, orientation);
+        }
+
+        // Schedule the next image display
         clearTimeout(imageTimer);
         imageTimer = setTimeout(showNextImage, 60000);
+    } catch (error) {
+        console.error('Error showing the next image:', error);
+    }
+}
+
+function handleTransparentImage(img, orientation) {
+    imageContainer.classList.remove('active');
+
+    setTimeout(() => {
+        imageContainer.innerHTML = ''; // Clear existing standard images
+        slideshowFull.innerHTML = ''; // Clear any previous transparent image
+
+        const transparentContainer = document.createElement('div');
+        transparentContainer.classList.add('image-container', orientation);
+        transparentContainer.style.opacity = 1;
+        transparentContainer.appendChild(img);
+
+        slideshowFull.appendChild(transparentContainer);
+    }, 250);
+}
+
+function handleStandardImage(img, orientation) {
+    const images = imageContainer.querySelectorAll('img');
+
+    // Remove oldest image if more than 3 are present
+    if (images.length >= 3) {
+        const oldestImage = images[0];
+        oldestImage.style.opacity = 0;
+        setTimeout(() => oldestImage.remove(), 1000);
+    }
+
+    // Add new image
+    img.className = orientation;
+    img.style.opacity = 1;
+    imageContainer.appendChild(img);
+
+    // Show the new image
+    imageContainer.classList.add('active');
+
+    // Hide the full-screen transparent image container if it exists
+    const transparentContainer = slideshowFull.querySelector('.image-container');
+    if (transparentContainer) {
+        transparentContainer.style.opacity = 0;
     }
 }
 
@@ -181,5 +163,15 @@ async function getGlobalState() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const slideshow = document.getElementById('slideshow');
+    const computedStyle = window.getComputedStyle(slideshow);
+
+    const paddingLeft = parseFloat(computedStyle.paddingLeft);
+    const paddingRight = parseFloat(computedStyle.paddingRight);
+    const paddingTop = parseFloat(computedStyle.paddingTop);
+    const paddingBottom = parseFloat(computedStyle.paddingBottom);
+
+    frameWidth = slideshow.offsetWidth - paddingLeft - paddingRight;
+    frameHeight = slideshow.offsetHeight - paddingTop - paddingBottom;
     showNextImage();
 });

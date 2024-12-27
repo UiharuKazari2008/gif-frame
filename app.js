@@ -62,6 +62,10 @@ app.get('/next-image', async (req, res) => {
     const orientation = dimensions.width >= dimensions.height ? 'landscape' : 'portrait';
 
     try {
+        // Extract query parameters
+        const availableWidth = parseInt(req.query.width) || 1080;
+        const availableHeight = parseInt(req.query.height) || 1920;
+
         // Check transparency percentage
         const imageBuffer = await sharp(imagePath).ensureAlpha().raw().toBuffer();
         const { width, height } = dimensions;
@@ -77,12 +81,44 @@ app.get('/next-image', async (req, res) => {
         const transparencyPercentage = (transparentPixels / totalPixels) * 100;
         const isTransparent = transparencyPercentage > 5;
 
+        // Perform position and rotation calculations
+        const rotation = Math.random() * 40 - 20; // Random rotation between -20 and 20 degrees
+        const radRotation = (Math.PI / 180) * Math.abs(rotation);
+
+        const imgActualWidth = Math.max(width, 320);
+        const imgActualHeight = Math.max(height, 320);
+
+        const rotatedWidth = Math.abs(Math.cos(radRotation) * imgActualWidth + Math.sin(radRotation) * imgActualHeight);
+        const rotatedHeight = Math.abs(Math.sin(radRotation) * imgActualWidth + Math.cos(radRotation) * imgActualHeight);
+
+        const minPadding = 20;
+
+        const horizontalPos = Math.random() * (availableWidth - rotatedWidth - 2 * minPadding);
+        const verticalPos = Math.random() * (availableHeight - rotatedHeight - 2 * minPadding);
+
+        const isLeft = horizontalPos + rotatedWidth / 2 < availableWidth / 2;
+        const isTop = verticalPos + rotatedHeight / 2 < availableHeight / 2;
+
+        const adjustedHorizontalPos = isLeft
+            ? horizontalPos + minPadding
+            : availableWidth - horizontalPos - rotatedWidth - minPadding;
+        const adjustedVerticalPos = isTop
+            ? verticalPos + minPadding
+            : availableHeight - verticalPos - rotatedHeight - minPadding;
+
         res.json({
             imageUrl: `/images/${nextImage}`,
             width, height,
             orientation,
             hasTransparency: isTransparent,
-            transparencyPercentage: transparencyPercentage.toFixed(2)
+            transparencyPercentage: transparencyPercentage.toFixed(2),
+            rotation: isTransparent ? undefined : rotation,
+            position: isTransparent ? undefined : {
+                horizontal: adjustedHorizontalPos,
+                vertical: adjustedVerticalPos,
+                isLeft,
+                isTop
+            }
         });
     } catch (error) {
         console.error(`Error processing image: ${imagePath}`, error);
