@@ -53,6 +53,8 @@ const imageContainer = slideshow.querySelector('.image-container');
 const slideshowFull = document.getElementById('slideshow-full');
 async function showNextImage() {
     if (!activeSlideshow || !enableSlideshow || pauseSlideshow) {
+        clearTimeout(imageTimer);
+        imageTimer = setTimeout(showNextImage, 60000);
         return;
     }
 
