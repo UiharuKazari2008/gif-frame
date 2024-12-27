@@ -6,7 +6,6 @@ window.onload = function() {
     }, 3000)
 }
 
-let currentImage = null;
 let enableSlideshow = true;
 let activeSlideshow = true;
 let pauseSlideshow = false;
@@ -94,7 +93,6 @@ function handleTransparentImage(img, orientation) {
         slideshowFull.appendChild(transparentContainer);
     }, 250);
 }
-
 function handleStandardImage(img, orientation) {
     const images = imageContainer.querySelectorAll('img');
 
@@ -132,7 +130,7 @@ async function getChatMessages() {
         holder.style.opacity = "1";
         if (doc.querySelector('div.chater-name')) {
             activeSlideshow = false;
-            currentImage.classList.remove('active');
+            imageContainer.classList.remove('active');
         } else {
             activeSlideshow = true;
         }
@@ -158,7 +156,7 @@ async function getGlobalState() {
         enableSlideshow = true;
     } else {
         enableSlideshow = false;
-        currentImage.classList.remove('active');
+        imageContainer.classList.remove('active');
     }
 }
 
