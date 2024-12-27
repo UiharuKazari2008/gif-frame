@@ -10,19 +10,25 @@
   </head>
     <body>
     <div id="chat-fg" style="opacity: 0"></div>
-    <div id="backbaord-fg">
-      <img src="/foreground.png"/>
+
+    <div class="layer" id="layer02">
+      <img src="/layer_00_02.png" alt="Foreground"/>
     </div>
-    <div class="fcontainer">
+    <div class="layer">
       <div id="slideshow" class="polaroid">
-        <div class="image-container"></div>
+        <div class="image-container">
+
+        </div>
       </div>
     </div>
-    <div class="fcontainer">
+    <div class="layer" id="layer01">
+      <img src="/layer_00_01.png" alt="Mid-ground"/>
+    </div>
+    <div class="layer">
       <div id="slideshow-full"></div>
     </div>
-    <div id="backbaord-bg">
-      <img src="/background.png"/>
+    <div class="layer" id="layer00">
+      <img src="/layer_00_00.png" alt="Background"/>
     </div>
     <script type="text/javascript" src="/main.js"></script>
   </body>

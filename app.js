@@ -138,16 +138,18 @@ app.get('/active/setting', (req, res) => {
             if (setSelect !== 0) {
                 switch (setSelect) {
                     case 2:
-                        return "night";
+                        return "01";
+                    case 1:
+                        return "00";
                     default:
-                        return true;
+                        return "00";
                 }
             }
             if (currentHour >= config.nightStart || currentHour < config.nightEnd) {
-                return "night";
+                return "01";
             }
         }
-        return true;
+        return "00";
     };
 
     res.send(globalActive ? getCurrentStatus().toString() : globalActive.toString());

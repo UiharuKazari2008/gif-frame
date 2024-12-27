@@ -6,43 +6,39 @@ body {
     margin: 0;
     background-color: black;
 }
-.fcontainer {
+.layer {
     position: absolute;
     left: 0;
     top: 0;
     height: 100vh;
     width: 100vw;
-}
-#backbaord-bg {
-    position: absolute;
-    width: 100%;
-    height: 100%;
     display: block;
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    z-index: 0;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
 }
-#backbaord-fg {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    display: block;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    z-index: 20;
+#layer02 {
+    z-index: 50;
 }
 #slideshow {
     width: calc(100% - 6em);
     padding: 2em 3em 6em 3em;
-    z-index: 15;
+    z-index: 40;
+}
+#layer01 {
+    z-index: 30;
 }
 #slideshow-full {
     width: calc(100% - 4em);
     margin: 2em 2em 6em 2em;
+    z-index: 20;
+}
+#layer00 {
     z-index: 10;
 }
+
 #slideshow, #slideshow-full {
     position: relative;
     height: calc(100% - calc(2em + 6em));
@@ -63,9 +59,6 @@ body {
 }
 .polaroid .image-container {
     position: relative;
-}
-.image-container.active {
-    opacity: 1;
 }
 .image-container img {
     object-fit: contain;
@@ -96,7 +89,7 @@ div#chat-fg {
     justify-content: flex-end;
     align-items: center;
     flex-direction: column;
-    z-index: 40;
+    z-index: 100;
     margin-bottom: 17em;
     margin-left: 14em;
     background: white;
@@ -185,4 +178,10 @@ div#chat-fg {
 }
 .header > span {
     padding-left: 0.5rem;
+}
+.active {
+    opacity: 1!important;
+}
+.inactive {
+    opacity: 0!important;;
 }

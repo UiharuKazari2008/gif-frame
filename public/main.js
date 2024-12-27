@@ -1,4 +1,22 @@
+let enableSlideshow = true;
+let activeSlideshow = true;
+let pauseSlideshow = false;
+let frameWidth;
+let frameHeight;
+let imageTimer;
+let init = false;
+
+const slideshow = document.getElementById('slideshow');
+const imageContainer = slideshow.querySelector('.image-container');
+const slideshowFull = document.getElementById('slideshow-full');
+const layer00 = document.getElementById('layer00');
+const layer01 = document.getElementById('layer01');
+const layer02 = document.getElementById('layer02');
+
 window.onload = function() {
+    getGlobalState();
+    getChatMessages();
+
     setInterval(refreshStickers, 300000); // 5 minutes in milliseconds
     setInterval(function () {
         getGlobalState();
@@ -6,51 +24,77 @@ window.onload = function() {
     }, 3000)
 }
 
-let enableSlideshow = true;
-let activeSlideshow = true;
-let pauseSlideshow = false;
-let currentSet = 'true';
-
+let currentSet = '00';
 function refreshStickers() {
-    const fgDiv = document.getElementById('backbaord-fg');
-    const bgDiv = document.getElementById('backbaord-bg');
-    const fgImg = fgDiv.getElementsByTagName('img')[0];
-    const bgImg = bgDiv.getElementsByTagName('img')[0];
-    fgImg.src = `/foreground${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
-    bgImg.src = `/background${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
+    const fgImg = layer02.getElementsByTagName('img')[0];
+    const mgImg = layer01.getElementsByTagName('img')[0];
+    const bgImg = layer00.getElementsByTagName('img')[0];
+    fgImg.src = `/layer_${currentSet || '00'}_02.png?` + new Date().getTime();
+    mgImg.src = `/layer_${currentSet || '00'}_01.png?` + new Date().getTime();
+    bgImg.src = `/layer_${currentSet || '00'}_00.png?` + new Date().getTime();
 }
-function preloadImage(data) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.src = data.imageUrl;
 
-        img.onload = () => {
-            if (data.position) {
-                img.style.position = "absolute";
-                img.style[data.position.isLeft ? "left" : "right"] = `${data.position.horizontal}px`;
-                img.style[data.position.isTop ? "top" : "bottom"] = `${data.position.vertical}px`;
-                if (data.rotation)
-                    img.style.transform = `rotate(${data.rotation}deg)`;
+async function getChatMessages() {
+    const response = await fetch('/chat/html');
+    const data = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(data, "text/html");
+    const holder = document.getElementById('chat-fg');
+    const messages = doc.querySelector('div.chat-messages');
+    if (messages && messages.innerHTML) {
+        holder.innerHTML = messages.innerHTML;
+        holder.style.opacity = "1";
+        if (doc.querySelector('div.chater-name')) {
+            activeSlideshow = false;
+            imageContainer.classList.remove('active');
+            const transparentContainer = slideshowFull.querySelector('.image-container');
+            if (transparentContainer) {
+                transparentContainer.classList.remove('active');
             }
-            resolve(img);
-        };
-
-        img.onerror = reject;
-    });
+        } else {
+            activeSlideshow = true;
+        }
+    } else {
+        holder.innerHTML = '';
+        holder.style.opacity = "0";
+        if (!activeSlideshow) {
+            activeSlideshow = true;
+            showNextImage()
+        } else {
+            activeSlideshow = true;
+        }
+    }
 }
-let frameWidth;
-let frameHeight;
-async function fetchNextImage() {
-    const response = await fetch(`/next-image?width=${frameWidth}&height=${frameHeight}`);
-    const data = await response.json();
-    const img = await preloadImage(data);
-    return { img, orientation: data.orientation, trans: data.hasTransparency };
+async function getGlobalState() {
+    const response = await fetch('/active/setting');
+    const data = await response.text();
+    if (data !== 'false') {
+        if (currentSet !== data) {
+            currentSet = data;
+            refreshStickers();
+        }
+        enableSlideshow = true;
+    } else {
+        enableSlideshow = false;
+        imageContainer.classList.remove('active');
+        setTimeout(() => {
+            imageContainer.innerHTML = ''; // Clear existing standard images
+        }, 1000);
+        const transparentContainer = slideshowFull.querySelector('.image-container');
+        if (transparentContainer) {
+            transparentContainer.classList.remove('active');
+        }
+    }
+    if (!init) {
+        document.querySelectorAll('.layer').forEach((e, i) => {
+            setTimeout(() => {
+                e.classList.add('active')
+            }, 100 * i);
+            init = true;
+        })
+    }
 }
-let imageTimer;
 
-const slideshow = document.getElementById('slideshow');
-const imageContainer = slideshow.querySelector('.image-container');
-const slideshowFull = document.getElementById('slideshow-full');
 async function showNextImage() {
     if (!activeSlideshow || !enableSlideshow || pauseSlideshow) {
         clearTimeout(imageTimer);
@@ -79,17 +123,43 @@ async function showNextImage() {
         console.error('Error showing the next image:', error);
     }
 }
+async function fetchNextImage() {
+    const response = await fetch(`/next-image?width=${frameWidth}&height=${frameHeight}`);
+    const data = await response.json();
+    const img = await preloadImage(data);
+    return { img, orientation: data.orientation, trans: data.hasTransparency };
+}
+function preloadImage(data) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = data.imageUrl;
 
+        img.onload = () => {
+            if (data.position) {
+                img.style.position = "absolute";
+                img.style[data.position.isLeft ? "left" : "right"] = `${data.position.horizontal}px`;
+                img.style[data.position.isTop ? "top" : "bottom"] = `${data.position.vertical}px`;
+                if (data.rotation)
+                    img.style.transform = `rotate(${data.rotation}deg)`;
+            }
+            resolve(img);
+        };
+
+        img.onerror = reject;
+    });
+}
 function handleTransparentImage(img, orientation) {
     imageContainer.classList.remove('active');
-
     setTimeout(() => {
         imageContainer.innerHTML = ''; // Clear existing standard images
+    }, 1000);
+
+    setTimeout(() => {
+
         slideshowFull.innerHTML = ''; // Clear any previous transparent image
 
         const transparentContainer = document.createElement('div');
-        transparentContainer.classList.add('image-container', orientation);
-        transparentContainer.style.opacity = 1;
+        transparentContainer.classList.add('image-container', 'active', orientation);
         transparentContainer.appendChild(img);
 
         slideshowFull.appendChild(transparentContainer);
@@ -97,76 +167,18 @@ function handleTransparentImage(img, orientation) {
 }
 function handleStandardImage(img, orientation) {
     const images = imageContainer.querySelectorAll('img');
-
-    // Remove oldest image if more than 3 are present
     if (images.length >= 3) {
         const oldestImage = images[0];
-        oldestImage.style.opacity = 0;
+        oldestImage.classList.remove('active');
         setTimeout(() => oldestImage.remove(), 1000);
     }
-
-    // Add new image
     img.className = orientation;
-    img.style.opacity = 1;
+    img.classList.add('active');
     imageContainer.appendChild(img);
-
-    // Show the new image
     imageContainer.classList.add('active');
-
-    // Hide the full-screen transparent image container if it exists
     const transparentContainer = slideshowFull.querySelector('.image-container');
     if (transparentContainer) {
-        transparentContainer.style.opacity = 0;
-    }
-}
-
-async function getChatMessages() {
-    const response = await fetch('/chat/html');
-    const data = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(data, "text/html");
-    const holder = document.getElementById('chat-fg');
-    const messages = doc.querySelector('div.chat-messages');
-    if (messages && messages.innerHTML) {
-        holder.innerHTML = messages.innerHTML;
-        holder.style.opacity = "1";
-        if (doc.querySelector('div.chater-name')) {
-            activeSlideshow = false;
-            imageContainer.classList.remove('active');
-            const transparentContainer = slideshowFull.querySelector('.image-container');
-            if (transparentContainer) {
-                transparentContainer.style.opacity = 0;
-            }
-        } else {
-            activeSlideshow = true;
-        }
-    } else {
-        holder.innerHTML = '';
-        holder.style.opacity = "0";
-        if (!activeSlideshow) {
-            activeSlideshow = true;
-            showNextImage()
-        } else {
-            activeSlideshow = true;
-        }
-    }
-}
-async function getGlobalState() {
-    const response = await fetch('/active/setting');
-    const data = await response.text();
-    if (data !== 'false') {
-        if (currentSet !== data) {
-            currentSet = data;
-            refreshStickers();
-        }
-        enableSlideshow = true;
-    } else {
-        enableSlideshow = false;
-        imageContainer.classList.remove('active');
-        const transparentContainer = slideshowFull.querySelector('.image-container');
-        if (transparentContainer) {
-            transparentContainer.style.opacity = 0;
-        }
+        transparentContainer.classList.remove('active');
     }
 }
 
@@ -181,5 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     frameWidth = slideshow.offsetWidth - paddingLeft - paddingRight;
     frameHeight = slideshow.offsetHeight - paddingTop - paddingBottom;
+
     showNextImage();
 });
