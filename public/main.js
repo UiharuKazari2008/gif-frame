@@ -131,6 +131,10 @@ async function getChatMessages() {
         if (doc.querySelector('div.chater-name')) {
             activeSlideshow = false;
             imageContainer.classList.remove('active');
+            const transparentContainer = slideshowFull.querySelector('.image-container');
+            if (transparentContainer) {
+                transparentContainer.style.opacity = 0;
+            }
         } else {
             activeSlideshow = true;
         }
@@ -157,6 +161,10 @@ async function getGlobalState() {
     } else {
         enableSlideshow = false;
         imageContainer.classList.remove('active');
+        const transparentContainer = slideshowFull.querySelector('.image-container');
+        if (transparentContainer) {
+            transparentContainer.style.opacity = 0;
+        }
     }
 }
 
