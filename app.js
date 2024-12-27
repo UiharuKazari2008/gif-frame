@@ -25,6 +25,7 @@ let streamChat
 
 let sentImages = [];
 let globalActive = true;
+let setSelect = 0;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
@@ -60,6 +61,14 @@ app.get('/active/setting', (req, res) => {
             const now = new Date();
             const currentHour = now.getHours();
 
+            if (setSelect !== 0) {
+                switch (setSelect) {
+                    case 2:
+                        return "night";
+                    default:
+                        return true;
+                }
+            }
             if (currentHour >= config.nightStart || currentHour < config.nightEnd) {
                 return "night";
             }
@@ -69,6 +78,7 @@ app.get('/active/setting', (req, res) => {
 
     res.send(globalActive ? getCurrentStatus().toString() : globalActive.toString());
 })
+
 app.get('/active/on', (req, res) => {
     globalActive = true;
     res.send(globalActive.toString())
@@ -76,6 +86,18 @@ app.get('/active/on', (req, res) => {
 app.get('/active/off', (req, res) => {
     globalActive = false;
     res.send(globalActive.toString())
+})
+app.get('/active/auto', (req, res) => {
+    setSelect = 0;
+    res.send(setSelect.toString())
+})
+app.get('/active/day', (req, res) => {
+    setSelect = 1;
+    res.send(setSelect.toString())
+})
+app.get('/active/night', (req, res) => {
+    setSelect = 2;
+    res.send(setSelect.toString())
 })
 
 // Generate a URL for authorization
