@@ -79,7 +79,7 @@ body {
     opacity: 0;
     transition: opacity 1s ease-in-out;
     width: unset;
-    max-width: 256px;
+    max-width: 512px;
     min-width: 128px;
     min-height: 128px;
     position: absolute;
