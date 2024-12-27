@@ -5,6 +5,7 @@ const sizeOf = require('image-size');
 const { google } = require('googleapis');
 const OAuth2 = google.auth.OAuth2;
 const bodyParser = require('body-parser');
+const sharp = require('sharp');
 const config = require('./config.json');
 let tokens = undefined;
 let oAuth2Client = undefined;
@@ -36,7 +37,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/next-image', (req, res) => {
+app.get('/next-image', async (req, res) => {
     const imagesDir = path.join(__dirname, 'public', 'images');
     const images = fs.readdirSync(imagesDir).filter(file => file.endsWith('.gif') || file.endsWith('.webp'));
 
@@ -60,7 +61,33 @@ app.get('/next-image', (req, res) => {
     const dimensions = sizeOf(imagePath);
     const orientation = dimensions.width >= dimensions.height ? 'landscape' : 'portrait';
 
-    res.json({ imageUrl: `/images/${nextImage}`, orientation });
+    try {
+        // Check transparency percentage
+        const imageBuffer = await sharp(imagePath).ensureAlpha().raw().toBuffer();
+        const { width, height } = dimensions;
+        const totalPixels = width * height;
+
+        let transparentPixels = 0;
+        for (let i = 3; i < imageBuffer.length; i += 4) {
+            if (imageBuffer[i] < 128) { // Alpha < 128 counts as transparent
+                transparentPixels++;
+            }
+        }
+
+        const transparencyPercentage = (transparentPixels / totalPixels) * 100;
+        const isTransparent = transparencyPercentage > 5;
+
+        res.json({
+            imageUrl: `/images/${nextImage}`,
+            width, height,
+            orientation,
+            hasTransparency: isTransparent,
+            transparencyPercentage: transparencyPercentage.toFixed(2)
+        });
+    } catch (error) {
+        console.error(`Error processing image: ${imagePath}`, error);
+        res.status(500).json({ error: 'Failed to process image' });
+    }
 });
 
 app.get('/active', (req, res) => {
@@ -132,119 +159,135 @@ app.get('/oauth2callback', (req, res) => {
     });
 });
 
-app.get('/url', async (req, res) => {
-    await refreshLiveBroadcasts();
-    if (!loginOk) {
-        res.send("<b>Please Contact PlayLand Gau Staff to Authorise the Youtube account</b>");
-    } else if (liveState) {
-        res.redirect(`https://www.youtube.com/watch?v=${activeLive.id}`)
-    } else {
-        res.redirect("https://www.youtube.com/@RhythmGamer")
-    }
-})
-app.get('/live', async (req, res) => {
-    await refreshLiveBroadcasts();
-    if (!loginOk) {
-        res.json({err: "Login Required"});
-    } else if (liveState) {
-        res.json({live: activeLive});
-    } else {
-        res.json({live: false});
-    }
-})
-app.get('/chat/html', async (req, res) => {
-    res.render('chat', {enable: !!oAuth2Client, login: loginOk, live: (liveState ? activeLive : false), chat: liveMessages.filter(e => (new Date()) - (new Date(e.time)) <= 5 * 60 * 1000).slice(-4)});
-})
-app.get('/chat/json', async (req, res) => {
-    res.json({live: activeLive, chat: liveMessages});
-})
+if (config.enable_youtube) {
+    app.get('/url', async (req, res) => {
+        await refreshLiveBroadcasts();
+        if (!loginOk) {
+            res.send("<b>Please Contact PlayLand Gau Staff to Authorise the Youtube account</b>");
+        } else if (liveState) {
+            res.redirect(`https://www.youtube.com/watch?v=${activeLive.id}`)
+        } else {
+            res.redirect("https://www.youtube.com/@RhythmGamer")
+        }
+    })
+    app.get('/live', async (req, res) => {
+        await refreshLiveBroadcasts();
+        if (!loginOk) {
+            res.json({err: "Login Required"});
+        } else if (liveState) {
+            res.json({live: activeLive});
+        } else {
+            res.json({live: false});
+        }
+    })
+    app.get('/chat/html', async (req, res) => {
+        res.render('chat', {
+            enable: !!oAuth2Client,
+            login: loginOk,
+            live: (liveState ? activeLive : false),
+            chat: liveMessages.filter(e => (new Date()) - (new Date(e.time)) <= 5 * 60 * 1000).slice(-4)
+        });
+    })
+    app.get('/chat/json', async (req, res) => {
+        res.json({live: activeLive, chat: liveMessages});
+    })
 
-async function checkTokenValidity() {
-    return new Promise(ok => {
-        oAuth2Client.getAccessToken((err, token) => {
-            if (err || !token) {
-                if (err)
-                    console.error(err)
-                ok(false);
-            } else {
-                ok(true);
-            }
-        });
-    })
-}
-async function refreshLiveBroadcasts() {
-    if (!loginOk)
-        return false;
-    const service = google.youtube('v3');
-    return new Promise((ok) => {
-        service.liveBroadcasts.list({
-            auth: oAuth2Client,
-            part: ['snippet','contentDetails','status'],
-            broadcastStatus: 'active',
-            broadcastType: 'all',
-            maxResults: 2
-        }, (err, response) => {
-            if (err) {
-                if (err.message.includes("Login Required")) {
-                    loginOk = false;
-                }
-                return console.error('The API returned an error: ' + err);
-            }
-            const broadcasts = response.data.items;
-            if (broadcasts.length === 0) {
-                ok(false);
-                if (liveState) {
-                    liveState = false;
-                    liveMessages = [];
-                    clearInterval(streamChat);
-                    streamChat = null;
-                    console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has ended`);
-                }
-                activeLive = null;
-            } else {
-                broadcasts.sort((a, b) => new Date(b.snippet.scheduledStartTime) - new Date(a.snippet.scheduledStartTime));
-                //`Title: ${broadcast.snippet.title}, URL: https://www.youtube.com/watch?v=${broadcast.id}`
-                if (!liveState) {
-                    activeLive = broadcasts[0];
-                    liveMessages = [];
-                    liveState = true;
-                    clearInterval(streamChat);
-                    streamChat = setInterval(getLiveChatMessages, 10000);
-                    console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has started`);
-                } else if (activeLive.id !== broadcasts[0].id) {
-                    activeLive = broadcasts[0];
-                    console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has started (Replacement)`);
-                }
-                ok(true);
-            }
-        });
-    })
-}
-function getLiveChatMessages() {
-    if (loginOk && liveState && activeLive && activeLive.snippet) {
-        const service = google.youtube('v3');
-        service.liveChatMessages.list({
-            auth: oAuth2Client,
-            liveChatId: activeLive.snippet.liveChatId,
-            part: 'snippet,authorDetails',
-        }, (err, response) => {
-            if (err) return console.error('The API returned an error: ' + err);
-            const messages = response.data.items;
-            liveMessages = messages.filter(m => m.snippet.hasDisplayContent && m.snippet.displayMessage.length > 0).map(msg => {
-                return {
-                    name: msg.authorDetails.displayName,
-                    icon: msg.authorDetails.profileImageUrl,
-                    text: msg.snippet.displayMessage,
-                    time: msg.snippet.publishedAt
+    async function checkTokenValidity() {
+        return new Promise(ok => {
+            oAuth2Client.getAccessToken((err, token) => {
+                if (err || !token) {
+                    if (err)
+                        console.error(err)
+                    ok(false);
+                } else {
+                    ok(true);
                 }
             });
-        });
+        })
     }
+    async function refreshLiveBroadcasts() {
+        if (!loginOk)
+            return false;
+        const service = google.youtube('v3');
+        return new Promise((ok) => {
+            service.liveBroadcasts.list({
+                auth: oAuth2Client,
+                part: ['snippet','contentDetails','status'],
+                broadcastStatus: 'active',
+                broadcastType: 'all',
+                maxResults: 2
+            }, (err, response) => {
+                if (err) {
+                    if (err.message.includes("Login Required")) {
+                        loginOk = false;
+                    }
+                    return console.error('The API returned an error: ' + err);
+                }
+                const broadcasts = response.data.items;
+                if (broadcasts.length === 0) {
+                    ok(false);
+                    if (liveState) {
+                        liveState = false;
+                        liveMessages = [];
+                        clearInterval(streamChat);
+                        streamChat = null;
+                        console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has ended`);
+                    }
+                    activeLive = null;
+                } else {
+                    broadcasts.sort((a, b) => new Date(b.snippet.scheduledStartTime) - new Date(a.snippet.scheduledStartTime));
+                    //`Title: ${broadcast.snippet.title}, URL: https://www.youtube.com/watch?v=${broadcast.id}`
+                    if (!liveState) {
+                        activeLive = broadcasts[0];
+                        liveMessages = [];
+                        liveState = true;
+                        clearInterval(streamChat);
+                        streamChat = setInterval(getLiveChatMessages, 10000);
+                        console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has started`);
+                    } else if (activeLive.id !== broadcasts[0].id) {
+                        activeLive = broadcasts[0];
+                        console.log(`Broadcast "https://www.youtube.com/watch?v=${activeLive.id}" has started (Replacement)`);
+                    }
+                    ok(true);
+                }
+            });
+        })
+    }
+    function getLiveChatMessages() {
+        if (loginOk && liveState && activeLive && activeLive.snippet) {
+            const service = google.youtube('v3');
+            service.liveChatMessages.list({
+                auth: oAuth2Client,
+                liveChatId: activeLive.snippet.liveChatId,
+                part: 'snippet,authorDetails',
+            }, (err, response) => {
+                if (err) return console.error('The API returned an error: ' + err);
+                const messages = response.data.items;
+                liveMessages = messages.filter(m => m.snippet.hasDisplayContent && m.snippet.displayMessage.length > 0).map(msg => {
+                    return {
+                        name: msg.authorDetails.displayName,
+                        icon: msg.authorDetails.profileImageUrl,
+                        text: msg.snippet.displayMessage,
+                        time: msg.snippet.publishedAt
+                    }
+                });
+            });
+        }
+    }
+} else {
+    app.get('/chat/html', async (req, res) => {
+        res.render('chat', {
+            enable: false,
+            login: false,
+            live: false,
+            chat: []
+        });
+    })
 }
 
 app.listen(port, () => {
     console.log(`App listening at http://localhost:${port}`);
-    if (fs.existsSync('./youtube-token.json')) {
+    if (config.enable_youtube && fs.existsSync('./youtube-token.json')) {
         console.log("YouTube Watcher Active");
         tokens = JSON.parse(fs.readFileSync('./youtube-token.json').toString());
         oAuth2Client = new OAuth2(

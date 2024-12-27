@@ -6,6 +6,13 @@ body {
     margin: 0;
     background-color: black;
 }
+.fcontainer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 100vw;
+}
 #backbaord-bg {
     position: absolute;
     width: 100%;
@@ -27,20 +34,26 @@ body {
     z-index: 20;
 }
 #slideshow {
+    width: calc(100% - 6em);
+    padding: 2em 3em 6em 3em;
+    z-index: 15;
+}
+#slideshow-full {
+    width: calc(100% - 4em);
+    margin: 2em 2em 6em 2em;
+    z-index: 10;
+}
+#slideshow, #slideshow-full {
     position: relative;
-    width: 100%;
     height: calc(100% - calc(2em + 6em));
     display: flex;
     justify-content: center;
     align-items: flex-end;
     overflow: hidden;
-    z-index: 10;
-    margin: 2em 2em 6em 2em;
-    filter: drop-shadow(0px 0px 15px black);
 }
 .image-container {
-    width: inherit;
-    height: inherit;
+    width: 100%;
+    height: 100%;
     position: absolute;
     display: flex;
     justify-content: center;
@@ -48,15 +61,33 @@ body {
     opacity: 0;
     transition: opacity 1s ease-in-out;
 }
+.polaroid .image-container {
+    position: relative;
+}
 .image-container.active {
     opacity: 1;
 }
 .image-container img {
     object-fit: contain;
-}
-.portrait img, .landscape img {
     width: 100vw;
     max-height: calc(100vh - calc(2em + 6em));
+}
+#slideshow-full .image-container img {
+    filter: drop-shadow(0px 0px 15px black);
+}
+.polaroid img {
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    width: unset;
+    max-width: 90vw;
+    min-width: 256px;
+    min-height: 256px;
+    position: absolute;
+    border: 0.5em solid white;
+    border-bottom-width: 4.75em;
+    border-radius: 7px;
+    background: #2b2b2b;
+    filter: drop-shadow(0px 0px 8px black);
 }
 div#chat-fg {
     width: 640px;
