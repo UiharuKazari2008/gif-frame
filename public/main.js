@@ -20,7 +20,7 @@ function refreshStickers() {
     fgImg.src = `/foreground${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
     bgImg.src = `/background${currentSet !== 'true' ? '-' + currentSet : ''}.png?` + new Date().getTime(); // Add timestamp to avoid caching
 }
-function preloadImage(url, transparent = false, minPadding = 20, imgWidth = 320, imgHeight = 320) {
+function preloadImage(url, minPadding = 20, imgWidth = 320, imgHeight = 320) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.src = url;
@@ -43,23 +43,28 @@ function preloadImage(url, transparent = false, minPadding = 20, imgWidth = 320,
                 const imgActualWidth = Math.max(imgWidth, 320);
                 const imgActualHeight = Math.max(imgHeight, 320);
 
-                // Generate random position ensuring image stays within bounds
-                const horizontalPos = Math.random() * (availableWidth - imgActualWidth - 2 * minPadding);
-                const verticalPos = Math.random() * (availableHeight - imgActualHeight - 2 * minPadding);
-
                 const rotation = Math.random() * 40 - 20; // Random rotation between -20 and 20 degrees
+                const radRotation = (Math.PI / 180) * Math.abs(rotation);
+
+                // Calculate the rotated bounding box dimensions
+                const rotatedWidth = Math.abs(Math.cos(radRotation) * imgActualWidth + Math.sin(radRotation) * imgActualHeight);
+                const rotatedHeight = Math.abs(Math.sin(radRotation) * imgActualWidth + Math.cos(radRotation) * imgActualHeight);
+
+                // Generate random position ensuring rotated image stays within bounds
+                const horizontalPos = Math.random() * (availableWidth - rotatedWidth - 2 * minPadding);
+                const verticalPos = Math.random() * (availableHeight - rotatedHeight - 2 * minPadding);
 
                 // Ensure position does not go outside the visible area
-                const isLeft = horizontalPos + imgActualWidth / 2 < availableWidth / 2;
-                const isTop = verticalPos + imgActualHeight / 2 < availableHeight / 2;
+                const isLeft = horizontalPos + rotatedWidth / 2 < availableWidth / 2;
+                const isTop = verticalPos + rotatedHeight / 2 < availableHeight / 2;
 
                 // Adjust positions to remain within bounds
                 const adjustedHorizontalPos = isLeft
                     ? horizontalPos + paddingLeft + minPadding
-                    : availableWidth - horizontalPos - imgActualWidth - paddingRight - minPadding;
+                    : availableWidth - horizontalPos - rotatedWidth - paddingRight - minPadding;
                 const adjustedVerticalPos = isTop
                     ? verticalPos + paddingTop + minPadding
-                    : availableHeight - verticalPos - imgActualHeight - paddingBottom - minPadding;
+                    : availableHeight - verticalPos - rotatedHeight - paddingBottom - minPadding;
 
                 // Apply position and rotation styles
                 img.style.position = "absolute";
