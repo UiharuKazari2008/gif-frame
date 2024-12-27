@@ -37,7 +37,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/next-image', (req, res) => {
-    const images = fs.readdirSync(path.join(__dirname, 'public', 'images')).filter(file => file.endsWith('.gif'));
+    const images = fs.readdirSync(path.join(__dirname, 'public', 'images')).filter(file => file.endsWith('.gif') || file.endsWith('.webp'));
     let availableImages = images.filter(image => !sentImages.includes(image));
     if (availableImages.length === 0) {
         sentImages = [];
