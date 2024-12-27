@@ -59,21 +59,21 @@ body {
     max-height: calc(100vh - calc(2em + 6em));
 }
 div#chat-fg {
-    width: 500px;
+    width: 640px;
     position: absolute;
     display: flex;
     justify-content: flex-end;
     align-items: center;
     flex-direction: column;
     z-index: 40;
-    margin-bottom: 12em;
-    margin-left: 8em;
+    margin-bottom: 17em;
+    margin-left: 14em;
     background: white;
     border: solid 5px #00849b;
     border-radius: 0.75em;
     padding: 0.5rem 1rem;
     filter: drop-shadow(0px 0px 15px black);
-    rotate: -6deg;
+    rotate: -9deg;
 }
 .chat-message {
     width: 100%;
