@@ -290,6 +290,7 @@ if (config.enable_youtube) {
     app.get('/authorize', (req, res) => {
         const authUrl = oAuth2Client.generateAuthUrl({
             access_type: 'offline',
+            prompt: 'consent',
             scope: SCOPES,
         });
         res.redirect(authUrl);
