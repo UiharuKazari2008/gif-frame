@@ -178,6 +178,31 @@ app.get('/active/night', (req, res) => {
     res.send(setSelect.toString())
 })
 
+let authRefresh = null;
+async function refreshAccessToken() {
+    try {
+        const tokens = await oAuth2Client.getAccessToken();
+        if (tokens) {
+            oAuth2Client.setCredentials(tokens.res.data); // Set new credentials
+            fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens.res.data)); // Save updated token to file
+            console.log('Token successfully refreshed and saved.');
+        }
+    } catch (error) {
+        console.error('Error refreshing access token:', error);
+    }
+}
+async function checkAndRefreshToken() {
+    if (!oAuth2Client) return;
+
+    const expiryDate = oAuth2Client.credentials.expiry_date;
+    const now = Date.now();
+
+    // Check if token will expire in the next 5 minutes
+    if (expiryDate && now >= expiryDate - 5 * 60 * 1000) {
+        console.log('Access token is about to expire, refreshing...');
+        await refreshAccessToken();
+    }
+}
 async function checkTokenValidity() {
     return new Promise(ok => {
         oAuth2Client.getAccessToken((err, token) => {
@@ -277,6 +302,8 @@ if (config.enable_youtube) {
             loginOk = true;
             fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
                 if (err) console.error(err);
+                clearInterval(authRefresh);
+                authRefresh = setInterval(checkAndRefreshToken, 60 * 1000);
                 res.send('Authorization successful! You can close this tab.');
             });
         });
@@ -312,7 +339,6 @@ if (config.enable_youtube) {
     app.get('/chat/json', async (req, res) => {
         res.json({live: activeLive, chat: liveMessages});
     })
-
 } else {
     app.get('/chat/html', async (req, res) => {
         res.render('chat', {
@@ -337,7 +363,7 @@ app.listen(port, () => {
         if (fs.existsSync(TOKEN_PATH)) {
             fs.readFile(TOKEN_PATH, async (err, token) => {
                 if (err) {
-                    console.log('Visit http://localhost:5770/authorize to start the authentication process.');
+                    console.log('Visit https://sbsd.plg.harmony.737.jp.net/authorize to start the authentication process.');
                     loginOk = false;
                 } else {
                     oAuth2Client.setCredentials(JSON.parse(token.toString()));
@@ -345,14 +371,15 @@ app.listen(port, () => {
                         loginOk = true;
                         console.log('Using existing authentication tokens.');
                         refreshLiveBroadcasts();
+                        authRefresh = setInterval(checkAndRefreshToken, 60 * 1000);
                     } else {
-                        console.log('Visit http://localhost:5770/authorize to start the authentication process.');
+                        console.log('Visit https://sbsd.plg.harmony.737.jp.net/authorize to start the authentication process.');
                         loginOk = false;
                     }
                 }
             })
         } else {
-            console.log('Visit http://localhost:5770/authorize to start the authentication process.');
+            console.log('Visit https://sbsd.plg.harmony.737.jp.net/authorize to start the authentication process.');
             loginOk = false;
         }
         streamRefresh = setInterval(refreshLiveBroadcasts, 60000);
