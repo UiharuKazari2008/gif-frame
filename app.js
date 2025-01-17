@@ -189,6 +189,7 @@ async function refreshAccessToken() {
         }
     } catch (error) {
         console.error('Error refreshing access token:', error);
+        loginOk = false;
     }
 }
 async function checkAndRefreshToken() {
@@ -211,7 +212,7 @@ async function checkTokenValidity() {
                     console.error(err)
                 ok(false);
             } else {
-                ok(true);
+                ok(token);
             }
         });
     })
